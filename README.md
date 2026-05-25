@@ -5,7 +5,7 @@ A blazingly fast, cyber-styled source code counter. Count your lines with pure e
 [![PyPI version](https://badge.fury.io/py/neonloc.svg)](https://pypi.org/project/neonloc/)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/debeski/neonloc/logo.png" alt="NeonLoc Logo" width="450"/>
+  <img src="https://raw.githubusercontent.com/debeski/neonloc/main/logo.png" alt="NeonLoc Logo" width="450"/>
 </p>
 
 ## Installation
