@@ -1,19 +1,28 @@
 import os
+import pathspec
 from pathlib import Path
 from typing import Dict, Any, List
 
 LANGUAGE_DEFS = {
-    "Python": {"type": "Code", "exts": [".py"], "single": ["#"], "multi": [('"""', '"""'), ("'''", "'''")]},
-    "JavaScript": {"type": "Code", "exts": [".js", ".jsx", ".mjs"], "single": ["//"], "multi": [("/*", "*/")]},
+    "Python": {"type": "Code", "exts": [".py", ".pyw", ".pyx"], "single": ["#"], "multi": [('"""', '"""'), ("'''", "'''")]},
+    "JavaScript": {"type": "Code", "exts": [".js", ".jsx", ".mjs", ".cjs"], "single": ["//"], "multi": [("/*", "*/")]},
     "TypeScript": {"type": "Code", "exts": [".ts", ".tsx"], "single": ["//"], "multi": [("/*", "*/")]},
     "Go": {"type": "Code", "exts": [".go"], "single": ["//"], "multi": [("/*", "*/")]},
     "C/C++": {"type": "Code", "exts": [".c", ".cpp", ".h", ".hpp", ".cc", ".cxx"], "single": ["//"], "multi": [("/*", "*/")]},
+    "C#": {"type": "Code", "exts": [".cs"], "single": ["//"], "multi": [("/*", "*/")]},
     "Rust": {"type": "Code", "exts": [".rs"], "single": ["//"], "multi": [("/*", "*/")]},
+    "Swift": {"type": "Code", "exts": [".swift"], "single": ["//"], "multi": [("/*", "*/")]},
+    "Kotlin": {"type": "Code", "exts": [".kt", ".kts"], "single": ["//"], "multi": [("/*", "*/")]},
     "HTML": {"type": "Markup", "exts": [".html", ".htm"], "single": [], "multi": [("<!--", "-->")]},
+    "Jinja/Django": {"type": "Markup", "exts": [".jinja", ".jinja2", ".j2", ".twig", ".njk"], "single": [], "multi": [("<!--", "-->"), ("{#", "#}")]},
+    "XML/SVG": {"type": "Markup", "exts": [".xml", ".svg"], "single": [], "multi": [("<!--", "-->")]},
     "CSS": {"type": "Style", "exts": [".css", ".scss", ".sass", ".less"], "single": [], "multi": [("/*", "*/")]},
     "YAML": {"type": "Config", "exts": [".yml", ".yaml"], "single": ["#"], "multi": []},
     "JSON": {"type": "Data", "exts": [".json"], "single": [], "multi": []},
+    "SQL": {"type": "Data", "exts": [".sql"], "single": ["--"], "multi": [("/*", "*/")]},
+    "CSV": {"type": "Data", "exts": [".csv", ".tsv"], "single": [], "multi": []},
     "Markdown": {"type": "Documentation", "exts": [".md", ".markdown"], "single": [], "multi": []},
+    "Text": {"type": "Documentation", "exts": [".txt"], "single": [], "multi": []},
     "Bash/Shell": {"type": "Code", "exts": [".sh", ".bash"], "single": ["#"], "multi": []},
     "Ruby": {"type": "Code", "exts": [".rb"], "single": ["#"], "multi": [("=begin", "=end")]},
     "Java": {"type": "Code", "exts": [".java"], "single": ["//"], "multi": [("/*", "*/")]},
@@ -21,7 +30,9 @@ LANGUAGE_DEFS = {
     "Vue": {"type": "Code", "exts": [".vue"], "single": ["//"], "multi": [("<!--", "-->"), ("/*", "*/")]},
     "Svelte": {"type": "Code", "exts": [".svelte"], "single": ["//"], "multi": [("<!--", "-->"), ("/*", "*/")]},
     "TOML": {"type": "Config", "exts": [".toml"], "single": ["#"], "multi": []},
+    "INI/Config": {"type": "Config", "exts": [".ini", ".cfg", ".conf"], "single": [";", "#"], "multi": []},
     "Dockerfile": {"type": "Config", "exts": [".dockerfile"], "exact": ["Dockerfile", "Dockerfile.dev"], "single": ["#"], "multi": []},
+    "IgnoreFiles": {"type": "Config", "exts": [".gitignore", ".dockerignore", ".npmignore", ".eslintignore"], "single": ["#"], "multi": []},
 }
 
 IGNORE_DIRS = {
@@ -103,14 +114,34 @@ def analyze_directory(dirpath: str) -> Dict[str, Dict[str, int]]:
     results = {}
     base_path = Path(dirpath).resolve()
     
+    spec = None
+    gitignore_path = base_path / ".gitignore"
+    if gitignore_path.exists():
+        with open(gitignore_path, "r", encoding="utf-8", errors="ignore") as f:
+            spec = pathspec.PathSpec.from_lines(pathspec.patterns.GitWildMatchPattern, f)
+    
     for root, dirs, files in os.walk(base_path):
-        # Filter out ignored directories
-        dirs[:] = [d for d in dirs if d not in IGNORE_DIRS and not d.startswith('.')]
+        if spec:
+            valid_dirs = []
+            for d in dirs:
+                if d in IGNORE_DIRS or d.startswith('.'):
+                    continue
+                d_rel = (Path(root) / d).relative_to(base_path)
+                if not spec.match_file(str(d_rel) + "/"):
+                    valid_dirs.append(d)
+            dirs[:] = valid_dirs
+        else:
+            dirs[:] = [d for d in dirs if d not in IGNORE_DIRS and not d.startswith('.')]
         
         for file in files:
             filepath = Path(root) / file
-            lang = get_language(file)
             
+            if spec:
+                rel_path = filepath.relative_to(base_path)
+                if spec.match_file(str(rel_path)):
+                    continue
+            
+            lang = get_language(file)
             if lang == "Unknown":
                 continue
                 

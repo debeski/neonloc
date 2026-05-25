@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "neonloc"
-version = "0.2.1"
+version = "0.3.0"
 description = "A blazingly fast, cyber-styled source code counter. Count your lines with pure edge."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -14,7 +14,8 @@ authors = [
 ]
 dependencies = [
     "rich>=13.0.0",
-    "click>=8.0.0"
+    "click>=8.0.0",
+    "pathspec>=0.10.0"
 ]
 
 [project.scripts]
