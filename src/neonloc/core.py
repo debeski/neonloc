@@ -55,37 +55,62 @@ def get_language(filename: str) -> str:
     
     return "Unknown"
 
-def count_file(filepath: Path, lang_def: dict) -> Dict[str, int]:
-    stats = {"code": 0, "comments": 0, "blanks": 0, "total": 0}
+def count_file(filepath: Path, primary_lang: str) -> Dict[str, Dict[str, int]]:
+    stats_by_lang = {primary_lang: {"code": 0, "comments": 0, "blanks": 0, "total": 0}}
     try:
         with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
             in_block_comment = False
             current_block_end = None
+            current_lang = primary_lang
             
             for line in f:
-                stats["total"] += 1
                 sline = line.strip()
+                lower_line = sline.lower()
                 
                 if not sline:
-                    stats["blanks"] += 1
+                    stats_by_lang[current_lang]["total"] += 1
+                    stats_by_lang[current_lang]["blanks"] += 1
                     continue
-                    
+
+                line_lang = current_lang
+                
+                # Context switching logic
+                if not in_block_comment:
+                    if current_lang == primary_lang and (LANGUAGE_DEFS.get(primary_lang, {}).get("type") == "Markup" or primary_lang in ["Vue", "Svelte", "PHP"]):
+                        if "<script" in lower_line and "</script>" not in lower_line and "<!--" not in lower_line:
+                            current_lang = "JavaScript"
+                            line_lang = primary_lang
+                        elif "<style" in lower_line and "</style>" not in lower_line and "<!--" not in lower_line:
+                            current_lang = "CSS"
+                            line_lang = primary_lang
+                    elif current_lang != primary_lang:
+                        if current_lang == "JavaScript" and "</script>" in lower_line:
+                            current_lang = primary_lang
+                            line_lang = primary_lang
+                        elif current_lang == "CSS" and "</style>" in lower_line:
+                            current_lang = primary_lang
+                            line_lang = primary_lang
+                
+                if line_lang not in stats_by_lang:
+                    stats_by_lang[line_lang] = {"code": 0, "comments": 0, "blanks": 0, "total": 0}
+                
+                stats_by_lang[line_lang]["total"] += 1
+                line_lang_def = LANGUAGE_DEFS.get(line_lang, {})
+                
                 if in_block_comment:
-                    stats["comments"] += 1
+                    stats_by_lang[line_lang]["comments"] += 1
                     if current_block_end in sline:
                         in_block_comment = False
                         current_block_end = None
                     continue
                 
-                # Check for block comment start
                 block_started = False
-                for b_start, b_end in lang_def.get("multi", []):
+                for b_start, b_end in line_lang_def.get("multi", []):
                     if sline.startswith(b_start):
                         in_block_comment = True
                         current_block_end = b_end
-                        stats["comments"] += 1
+                        stats_by_lang[line_lang]["comments"] += 1
                         block_started = True
-                        # Check if it ends on the same line
                         if b_end in sline[len(b_start):]:
                             in_block_comment = False
                             current_block_end = None
@@ -94,21 +119,19 @@ def count_file(filepath: Path, lang_def: dict) -> Dict[str, int]:
                 if block_started:
                     continue
                 
-                # Check for single line comment
                 is_single = False
-                for s_cmt in lang_def.get("single", []):
+                for s_cmt in line_lang_def.get("single", []):
                     if sline.startswith(s_cmt):
-                        stats["comments"] += 1
+                        stats_by_lang[line_lang]["comments"] += 1
                         is_single = True
                         break
                 
                 if not is_single:
-                    stats["code"] += 1
+                    stats_by_lang[line_lang]["code"] += 1
     except Exception:
-        # Ignore unreadable files quietly, keeping total edge
         pass
         
-    return stats
+    return stats_by_lang
 
 def analyze_directory(dirpath: str) -> Dict[str, Dict[str, int]]:
     results = {}
@@ -141,21 +164,28 @@ def analyze_directory(dirpath: str) -> Dict[str, Dict[str, int]]:
                 if spec.match_file(str(rel_path)):
                     continue
             
-            lang = get_language(file)
-            if lang == "Unknown":
+            primary_lang = get_language(file)
+            if primary_lang == "Unknown":
                 continue
                 
-            stats = count_file(filepath, LANGUAGE_DEFS[lang])
-            if stats["total"] == 0:
+            stats_by_lang = count_file(filepath, primary_lang)
+            if sum(s["total"] for s in stats_by_lang.values()) == 0:
                 continue
                 
-            if lang not in results:
-                results[lang] = {"type": LANGUAGE_DEFS[lang].get("type", "Code"), "files": 0, "code": 0, "comments": 0, "blanks": 0, "total": 0}
-                
-            results[lang]["files"] += 1
-            results[lang]["code"] += stats["code"]
-            results[lang]["comments"] += stats["comments"]
-            results[lang]["blanks"] += stats["blanks"]
-            results[lang]["total"] += stats["total"]
+            if primary_lang not in results:
+                results[primary_lang] = {"type": LANGUAGE_DEFS[primary_lang].get("type", "Code"), "files": 0, "code": 0, "comments": 0, "blanks": 0, "total": 0}
+            results[primary_lang]["files"] += 1
+            
+            for lang, stats in stats_by_lang.items():
+                if stats["total"] == 0:
+                    continue
+                    
+                if lang not in results:
+                    results[lang] = {"type": LANGUAGE_DEFS.get(lang, {}).get("type", "Code"), "files": 0, "code": 0, "comments": 0, "blanks": 0, "total": 0}
+                    
+                results[lang]["code"] += stats["code"]
+                results[lang]["comments"] += stats["comments"]
+                results[lang]["blanks"] += stats["blanks"]
+                results[lang]["total"] += stats["total"]
             
     return results

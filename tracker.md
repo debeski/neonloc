@@ -18,6 +18,7 @@
 - None.
 ### Incomplete Tasks: 
 ### Completed Recently:
+- [x] Implement inline CSS and JS parsing for HTML, Vue, Svelte, and PHP files.
 - [x] Implement SLOC parsing core logic.
 - [x] Implement rich CLI interface.
 - [x] Build edgy UI components.

@@ -1,3 +1,6 @@
+## v0.4.0
+- **Inline CSS and JS Parsing**: Upgraded `core.py` to intelligently parse embedded CSS and JavaScript inside HTML, Vue, Svelte, and PHP files. Inline scripts and styles are now uniquely identified, and their code, comments, and blanks are properly attributed to CSS and JavaScript metrics tables instead of being lumped into Markup.
+
 ## v0.3.0
 - **GitIgnore Parsing**: Integrated `pathspec` to deeply respect `.gitignore` rules while traversing the directory tree, ensuring perfectly accurate code metrics without bloating.
 - **Massive Language Expansion**: Expanded recognition to cover Jinja, Django Templates, SQL, CSV, XML, SVG, INI, Text files, C#, Swift, Kotlin, and config ignore files to capture everything recursive-ly and definitively.
