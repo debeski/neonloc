@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import click
+from io import StringIO
 from datetime import datetime
 from pathlib import Path
 from rich.console import Console
@@ -75,34 +76,40 @@ def main(directory, list_loc, export):
         ))
         sys.exit(0)
 
-    if path_metrics:
-        for table in build_path_tables(path_metrics, list_loc.lower()):
-            console.print(table)
-            console.print()
+    report_items = build_report_items(results, path_metrics, list_loc)
+    print_report(console, report_items)
+    
+    if export:
+        export_paths = write_export(target_dir, results, path_metrics, list_loc, report_items)
+        console.print(f"[bold cyan]Exported JSON:[/bold cyan] {export_paths['json']}")
+        console.print(f"[bold cyan]Exported report:[/bold cyan] {export_paths['txt']}")
+
+def build_report_items(results, path_metrics, list_loc):
+    if list_loc and path_metrics:
+        tables = build_path_tables(path_metrics, list_loc.lower())
     else:
-        for table in build_category_tables(results):
-            console.print(table)
-            console.print()
+        tables = build_category_tables(results)
 
     total_files = sum(stats['files'] for stats in results.values())
     total_code = sum(stats['code'] for stats in results.values())
-    
+
     summary_text = (
         f"Analyzed [bold cyan]{total_files}[/bold cyan] files across "
         f"[bold magenta]{len(results)}[/bold magenta] languages/formats.\n"
         f"Found [bold spring_green2]{total_code:,}[/bold spring_green2] lines of meaningful content."
     )
-    
-    console.print(Panel(
+    summary = Panel(
         summary_text,
         border_style="cyan",
         title="[bold yellow]Scan Summary[/bold yellow]",
         title_align="left"
-    ))
-    
-    if export:
-        export_path = write_export(target_dir, results, path_metrics, list_loc)
-        console.print(f"[bold cyan]Exported result:[/bold cyan] {export_path}")
+    )
+    return [*tables, summary]
+
+def print_report(target_console, report_items):
+    for item in report_items:
+        target_console.print(item)
+        target_console.print()
 
 def build_category_tables(results):
     categories = {}
@@ -160,18 +167,21 @@ def build_category_tables(results):
     return tables
 
 def build_path_tables(path_metrics, mode):
-    tables = []
     selected = resolve_path_mode(path_metrics, mode)
-    
-    if selected in ("dirs", "both"):
+
+    if selected == "both":
+        return [build_tree_table(path_metrics)]
+
+    tables = []
+    if selected == "dirs":
         dir_rows = [row for row in path_metrics["dirs"] if row["path"] != "."]
         if not dir_rows:
             dir_rows = path_metrics["dirs"]
         tables.append(build_path_table("DIRECTORY LOC METRICS", "Directory", dir_rows))
-    
-    if selected in ("files", "both"):
+
+    if selected == "files":
         tables.append(build_path_table("FILE LOC METRICS", "File", path_metrics["files"], include_language=True))
-    
+
     return tables
 
 def resolve_path_mode(path_metrics, mode):
@@ -237,10 +247,85 @@ def build_path_table(title, path_column, rows, include_language=False):
     
     return table
 
-def write_export(target_dir, results, path_metrics, list_loc):
+def build_tree_table(path_metrics):
+    dirs = path_metrics["dirs"]
+
+    files_by_dir = {}
+    for f in path_metrics["files"]:
+        parent = str(Path(f["path"]).parent)
+        parent = "." if parent == "." else parent
+        files_by_dir.setdefault(parent, []).append(f)
+    for rows in files_by_dir.values():
+        rows.sort(key=lambda row: row["total"], reverse=True)
+
+    def dir_sort_key(row):
+        return () if row["path"] == "." else tuple(row["path"].split("/"))
+
+    sorted_dirs = sorted(dirs, key=dir_sort_key)
+
+    table = Table(
+        title="[bold spring_green2]LOC METRICS[/bold spring_green2]",
+        show_header=True,
+        header_style="bold cyan",
+        border_style="magenta",
+        expand=True
+    )
+    table.add_column("Path", style="bold bright_white")
+    table.add_column("Language", style="cyan")
+    table.add_column("Files", justify="right", style="cyan")
+    table.add_column("Lines", justify="right", style="spring_green2")
+    table.add_column("Comments", justify="right", style="grey74")
+    table.add_column("Blanks", justify="right", style="grey50")
+    table.add_column("Total", justify="right", style="bold deep_pink4")
+
+    totals = {"files": 0, "code": 0, "comments": 0, "blanks": 0, "total": 0}
+    for d in sorted_dirs:
+        depth = 0 if d["path"] == "." else d["path"].count("/") + 1
+        indent = "  " * depth
+        label = "." if d["path"] == "." else d["path"].split("/")[-1] + "/"
+        table.add_row(
+            f"{indent}[bold]{label}[/bold]",
+            "[cyan]-[/cyan]",
+            f"[bold cyan]{d['files']:,}[/bold cyan]",
+            f"[bold spring_green2]{d['code']:,}[/bold spring_green2]",
+            f"[bold grey74]{d['comments']:,}[/bold grey74]",
+            f"[bold grey50]{d['blanks']:,}[/bold grey50]",
+            f"[bold deep_pink4]{d['total']:,}[/bold deep_pink4]"
+        )
+        for key in totals:
+            totals[key] += d[key]
+
+        file_indent = "  " * (depth + 1)
+        for f in files_by_dir.get(d["path"], []):
+            fname = Path(f["path"]).name
+            table.add_row(
+                f"{file_indent}- {fname}",
+                f["language"],
+                f"{f['files']:,}",
+                f"{f['code']:,}",
+                f"{f['comments']:,}",
+                f"{f['blanks']:,}",
+                f"{f['total']:,}"
+            )
+
+    table.add_section()
+    table.add_row(
+        "[bold white]TOTAL[/bold white]",
+        "[bold cyan]-[/bold cyan]",
+        f"[bold cyan]{totals['files']:,}[/bold cyan]",
+        f"[bold spring_green2]{totals['code']:,}[/bold spring_green2]",
+        f"[bold grey74]{totals['comments']:,}[/bold grey74]",
+        f"[bold grey50]{totals['blanks']:,}[/bold grey50]",
+        f"[bold deep_pink4]{totals['total']:,}[/bold deep_pink4]"
+    )
+
+    return table
+
+def write_export(target_dir, results, path_metrics, list_loc, report_items):
     export_dir = target_dir / ".neonloc"
     export_dir.mkdir(exist_ok=True)
-    export_path = export_dir / "result.json"
+    json_path = export_dir / "result.json"
+    txt_path = export_dir / "result.txt"
     payload = {
         "generated_at": f"{datetime.utcnow().isoformat(timespec='seconds')}Z",
         "directory": str(target_dir),
@@ -261,11 +346,17 @@ def write_export(target_dir, results, path_metrics, list_loc):
             "dirs": path_metrics["dirs"],
         }
     
-    with open(export_path, "w", encoding="utf-8") as f:
+    with open(json_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2)
         f.write("\n")
-    
-    return export_path
+
+    report_buffer = StringIO()
+    report_console = Console(file=report_buffer, force_terminal=False, width=120)
+    print_report(report_console, report_items)
+    with open(txt_path, "w", encoding="utf-8") as f:
+        f.write(report_buffer.getvalue())
+
+    return {"json": json_path, "txt": txt_path}
 
 if __name__ == "__main__":
     main()

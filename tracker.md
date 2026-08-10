@@ -4,7 +4,7 @@
 ### Current Verified Snapshot: 
 - `neonloc` implemented as a top-level Python package with Rich and Click.
 - CLI code counter groups files by category with an edgy UI.
-- `-L`/`--list-loc` shows only detailed file/dir LOC tables with auto layout detection, followed by summary.
+- `-L`/`--list-loc` shows detailed file/dir LOC tables with auto layout detection, followed by summary; `both` mode renders a single nested tree table (`build_tree_table` in `cli.py`) instead of separate dir/file tables.
 - `-e`/`--export` writes JSON scan results to `<target>/.neonloc/result.json`.
 - `VERSION` is the single package version source; GitHub Actions publishes tag builds to PyPI via Trusted Publishing.
 ### Current Project Adopted Standards: 
@@ -20,6 +20,7 @@
 - None.
 ### Incomplete Tasks: 
 ### Completed Recently:
+- [x] Reworked `-L both` into a nested folder/file tree table instead of two flat tables.
 - [x] Fixed release/package version mismatch by making `VERSION` the sole source for setuptools metadata and `neonloc.__version__`.
 - [x] Added optional `-e`/`--export` JSON export under `.neonloc/result.json`.
 - [x] Added tag-driven GitHub Actions release workflow for PyPI and GitHub Releases.

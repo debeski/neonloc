@@ -1,3 +1,6 @@
+## v0.5.1
+- **Nested Tree View for `-L both`**: Replaced the separate directory/file tables in `cli.py`'s `build_path_tables` with a single indented tree table (`build_tree_table`) showing each directory followed by its nested files, recursing through subdirectories in hierarchical order.
+
 ## v0.5.0
 - **JSON Export Option**: Added `-e`/`--export` in `cli.py` to write `result.json` under the scanned directory's `.neonloc` folder with summary, language metrics, and optional path metrics.
 - **Single Version Source**: Switched `pyproject.toml` to setuptools dynamic versioning from `VERSION`, updated `neonloc.__version__` to read package metadata, and fixed release workflow checks for the top-level `neonloc` package layout.

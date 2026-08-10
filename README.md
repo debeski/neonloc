@@ -52,7 +52,7 @@ Export the scan result as JSON:
 neonloc . -e
 ```
 
-Use `-e` or `--export` to write `result.json` under the scanned directory's `.neonloc` folder.
+Use `-e` or `--export` to write `result.json` and a matching console-style `result.txt` report under the scanned directory's `.neonloc` folder.
 
 ## Features
 
@@ -62,7 +62,7 @@ Use `-e` or `--export` to write `result.json` under the scanned directory's `.ne
 - **Language Support**: Python, JavaScript, TypeScript, Go, C/C++, Rust, HTML, CSS, YAML, JSON, Markdown, Bash, Ruby, Java, PHP, Vue, Svelte, TOML, Dockerfile.
 - **Deep Metrics**: Counts true code logic, comments, blanks, and total lines.
 - **Path LOC Tables**: Optional file and directory tables replace the generic category report, with `auto` choosing flat, modular, or mixed layout output.
-- **JSON Export**: Optional `-e`/`--export` writes the scan payload to `.neonloc/result.json`.
+- **Export Files**: Optional `-e`/`--export` writes the scan payload to `.neonloc/result.json` and the rendered report to `.neonloc/result.txt`.
 
 ---
 [**View on PyPI**](https://pypi.org/project/neonloc/) • [**View on GitHub**](https://github.com/debeski/neonloc)
