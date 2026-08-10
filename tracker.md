@@ -7,6 +7,7 @@
 - `-L`/`--list-loc` shows detailed file/dir LOC tables with auto layout detection, followed by summary; `both` mode renders a single nested tree table (`build_tree_table` in `cli.py`) instead of separate dir/file tables.
 - `-e`/`--export` writes JSON scan results to `<target>/.neonloc/result.json` plus a `result.txt` rendered from the same rich report tables (verified layout-identical to console output).
 - `VERSION` is the single package version source; GitHub Actions publishes tag builds to PyPI via Trusted Publishing.
+- `-V`/`--version` flag added to CLI (click.version_option, reads `neonloc.__version__`).
 ### Current Project Adopted Standards: 
 - Python 3.8+ compatibility.
 - Setuptools based `pyproject.toml` with dynamic versioning from `VERSION`.

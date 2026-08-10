@@ -12,6 +12,7 @@ from rich.text import Text
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.align import Align
 
+from neonloc import __version__
 from neonloc.core import analyze_directory
 
 console = Console()
@@ -28,6 +29,7 @@ BANNER = """[bold cyan]
 """
 
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})
+@click.version_option(__version__, "-V", "--version", prog_name="neonloc")
 @click.argument('directory', default='.', type=click.Path(exists=True, file_okay=False, dir_okay=True))
 @click.option(
     "-L",
