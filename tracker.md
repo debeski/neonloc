@@ -2,12 +2,11 @@
 
 ## Part 1: Project Related [Max 55 lines]
 ### Current Verified Snapshot: 
-- `neonloc` implemented as a top-level Python package with Rich and Click.
-- CLI code counter groups files by category with an edgy UI.
-- `-L`/`--list-loc` shows detailed file/dir LOC tables with auto layout detection, followed by summary; `both` mode renders a single nested tree table (`build_tree_table` in `cli.py`) instead of separate dir/file tables.
-- `-e`/`--export` writes JSON scan results to `<target>/.neonloc/result.json` plus a `result.txt` rendered from the same rich report tables (verified layout-identical to console output).
-- `VERSION` is the single package version source; GitHub Actions publishes tag builds to PyPI via Trusted Publishing.
-- `-V`/`--version` flag added to CLI (click.version_option, reads `neonloc.__version__`).
+- `neonloc` (Rich+Click CLI) groups files by category; `-L`/`--list-loc` adds file/dir/both LOC tables (`--depth`/`--top`/`--top-dirs`/`--top-languages`/`--sort`). `-D` size/empty/largest-file tables. `-X` `core.detect_duplicates` (line-hash).
+- `core.count_file`/`analyze_directory` never swallow read errors (`path_metrics["errors"]` + FILE READ ERRORS table). `core.compute_health` (shared by CLI panel + HTML) drives always-on `Project Health` panel; thresholds configurable.
+- New `neonloc/config.py`: loads `.neonloc.toml` (`[scan]`/`[output]`/`[thresholds]`, `tomllib`/`tomli` fallback) from target dir; CLI flags override. `neonloc/git_info.py`: `--git`, `--since <Nd|w|m|y>` LOC trend.
+- `neonloc/html_report.py`: `--html <path>` writes a self-contained dark-themed HTML report (cards, tables, health, trend SVG). `-e`/`--export` writes timestamped `result_<ts>.json`/`.txt` under `.neonloc/`.
+- `-V`/`--version`. `--no-banner`/`--no-color`/`-q`/`--quiet` for scripting; config `[output]` also controls banner/color defaults.
 ### Current Project Adopted Standards: 
 - Python 3.8+ compatibility.
 - Setuptools based `pyproject.toml` with dynamic versioning from `VERSION`.
@@ -31,9 +30,9 @@
 - [x] Implement rich CLI interface.
 - [x] Build edgy UI components.
 ### One-line info about last verified Tests: 
-- `python3 -m compileall neonloc` passed; `python3 -m build --no-isolation` built `neonloc-0.5.1`; `python3 -m twine check dist/*` passed before artifacts moved to `.xpose/`.
+- `py_compile` on all `neonloc/*.py` passed; manual CLI smoke tests (config file, `--html`, `-D`/`-X`/`--git`/`--since`/`-q` combos) verified against scratch fixtures and this repo.
 ### One-line info about last time edited Docs: 
-- `docs/RELEASING.md` documents `VERSION` as the single release version source.
+- `README.md` Usage/Features refreshed for all v0.6.0 flags (depth/top/sort, `-D`, `-X`, `--git`/`--since`, `--html`, `.neonloc.toml`).
 
 ## Part 2: Global [Max 20 lines]
 ### Global Standard Helpers, Shortcuts, Info, etc.:
