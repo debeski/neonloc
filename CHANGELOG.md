@@ -1,4 +1,5 @@
 ## v0.5.1
+- **Matching TXT Export Layout**: `write_export` in `cli.py` now renders `result.txt` by piping the same `report_items` (category/path tables plus summary) through a `rich.Console` into a `StringIO` buffer, so the exported text report is byte-identical in layout to the console output.
 - **Nested Tree View for `-L both`**: Replaced the separate directory/file tables in `cli.py`'s `build_path_tables` with a single indented tree table (`build_tree_table`) showing each directory followed by its nested files, recursing through subdirectories in hierarchical order.
 
 ## v0.5.0
