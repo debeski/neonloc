@@ -44,6 +44,7 @@ neonloc . -L auto
 ```
 
 Use `-L files`, `--list-loc dirs`, or `--list-loc both` to force file, directory, or combined LOC tables.
+When `-L` is passed, NeonLoc shows only the detailed path table view plus the final scan summary.
 
 ## Features
 
@@ -52,7 +53,7 @@ Use `-L files`, `--list-loc dirs`, or `--list-loc both` to force file, directory
 - **Lightning Fast**: Scans and parses directories in the blink of an eye.
 - **Language Support**: Python, JavaScript, TypeScript, Go, C/C++, Rust, HTML, CSS, YAML, JSON, Markdown, Bash, Ruby, Java, PHP, Vue, Svelte, TOML, Dockerfile.
 - **Deep Metrics**: Counts true code logic, comments, blanks, and total lines.
-- **Path LOC Tables**: Optional file and directory tables reuse the same metrics style, with `auto` choosing flat, modular, or mixed layout output.
+- **Path LOC Tables**: Optional file and directory tables replace the generic category report, with `auto` choosing flat, modular, or mixed layout output.
 
 ---
 [**View on PyPI**](https://pypi.org/project/neonloc/) • [**View on GitHub**](https://github.com/debeski/neonloc)

@@ -4,7 +4,7 @@
 ### Current Verified Snapshot: 
 - `neonloc` implemented with Python, Rich, and Click.
 - CLI code counter groups files by category with an edgy UI.
-- `-L`/`--list-loc` can add file/dir LOC tables with auto layout detection.
+- `-L`/`--list-loc` shows only detailed file/dir LOC tables with auto layout detection, followed by summary.
 - GitHub Actions release workflow publishes tag builds to PyPI via Trusted Publishing.
 - Package is officially published to PyPI and GitHub.
 ### Current Project Adopted Standards: 
@@ -27,9 +27,9 @@
 - [x] Implement rich CLI interface.
 - [x] Build edgy UI components.
 ### One-line info about last verified Tests: 
-- `-L auto` CLI smoke passed, help shows alias, version gate passed for `0.4.1`; `python3 -m compileall src` passed.
+- `python3 -m compileall src` passed; CLI smoke blocked because system Python lacks `click` and checked-in venv has stale `/home/debeski/...` shebang.
 ### One-line info about last time edited Docs: 
-- `docs/RELEASING.md` documents Trusted Publisher setup and tag release steps.
+- `README.md` documents `-L` detailed-only report behavior.
 
 ## Part 2: Global [Max 20 lines]
 ### Global Standard Helpers, Shortcuts, Info, etc.:

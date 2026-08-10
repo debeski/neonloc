@@ -24,7 +24,7 @@ BANNER = """[bold cyan]
 [bold magenta]The abyssal line of code counter.[/bold magenta]
 """
 
-@click.command()
+@click.command(context_settings={"help_option_names": ["-h", "--help"]})
 @click.argument('directory', default='.', type=click.Path(exists=True, file_okay=False, dir_okay=True))
 @click.option(
     "-L",
@@ -65,62 +65,12 @@ def main(directory, list_loc):
         ))
         sys.exit(0)
 
-    # Group by category
-    categories = {}
-    for lang, stats in results.items():
-        cat = stats["type"]
-        if cat not in categories:
-            categories[cat] = []
-        categories[cat].append((lang, stats))
-        
-    for cat in sorted(categories.keys()):
-        sorted_langs = sorted(categories[cat], key=lambda item: item[1]['total'], reverse=True)
-        
-        table = Table(
-            title=f"[bold spring_green2]{cat.upper()} METRICS[/bold spring_green2]",
-            show_header=True,
-            header_style="bold cyan",
-            border_style="magenta",
-            expand=True
-        )
-        table.add_column("Language", style="bold bright_white")
-        table.add_column("Files", justify="right", style="cyan")
-        table.add_column("Lines", justify="right", style="spring_green2")
-        table.add_column("Comments", justify="right", style="grey74")
-        table.add_column("Blanks", justify="right", style="grey50")
-        table.add_column("Total", justify="right", style="bold deep_pink4")
-        
-        c_files = c_code = c_comments = c_blanks = c_total = 0
-        for lang, stats in sorted_langs:
-            table.add_row(
-                lang,
-                f"{stats['files']:,}",
-                f"{stats['code']:,}",
-                f"{stats['comments']:,}",
-                f"{stats['blanks']:,}",
-                f"{stats['total']:,}"
-            )
-            c_files += stats['files']
-            c_code += stats['code']
-            c_comments += stats['comments']
-            c_blanks += stats['blanks']
-            c_total += stats['total']
-            
-        table.add_section()
-        table.add_row(
-            "[bold white]TOTAL[/bold white]",
-            f"[bold cyan]{c_files:,}[/bold cyan]",
-            f"[bold spring_green2]{c_code:,}[/bold spring_green2]",
-            f"[bold grey74]{c_comments:,}[/bold grey74]",
-            f"[bold grey50]{c_blanks:,}[/bold grey50]",
-            f"[bold deep_pink4]{c_total:,}[/bold deep_pink4]"
-        )
-        
-        console.print(table)
-        console.print()
-    
     if path_metrics:
         for table in build_path_tables(path_metrics, list_loc.lower()):
+            console.print(table)
+            console.print()
+    else:
+        for table in build_category_tables(results):
             console.print(table)
             console.print()
 
@@ -139,6 +89,61 @@ def main(directory, list_loc):
         title="[bold yellow]Scan Summary[/bold yellow]",
         title_align="left"
     ))
+
+def build_category_tables(results):
+    categories = {}
+    for lang, stats in results.items():
+        cat = stats["type"]
+        if cat not in categories:
+            categories[cat] = []
+        categories[cat].append((lang, stats))
+
+    tables = []
+    for cat in sorted(categories.keys()):
+        sorted_langs = sorted(categories[cat], key=lambda item: item[1]['total'], reverse=True)
+
+        table = Table(
+            title=f"[bold spring_green2]{cat.upper()} METRICS[/bold spring_green2]",
+            show_header=True,
+            header_style="bold cyan",
+            border_style="magenta",
+            expand=True
+        )
+        table.add_column("Language", style="bold bright_white")
+        table.add_column("Files", justify="right", style="cyan")
+        table.add_column("Lines", justify="right", style="spring_green2")
+        table.add_column("Comments", justify="right", style="grey74")
+        table.add_column("Blanks", justify="right", style="grey50")
+        table.add_column("Total", justify="right", style="bold deep_pink4")
+
+        c_files = c_code = c_comments = c_blanks = c_total = 0
+        for lang, stats in sorted_langs:
+            table.add_row(
+                lang,
+                f"{stats['files']:,}",
+                f"{stats['code']:,}",
+                f"{stats['comments']:,}",
+                f"{stats['blanks']:,}",
+                f"{stats['total']:,}"
+            )
+            c_files += stats['files']
+            c_code += stats['code']
+            c_comments += stats['comments']
+            c_blanks += stats['blanks']
+            c_total += stats['total']
+
+        table.add_section()
+        table.add_row(
+            "[bold white]TOTAL[/bold white]",
+            f"[bold cyan]{c_files:,}[/bold cyan]",
+            f"[bold spring_green2]{c_code:,}[/bold spring_green2]",
+            f"[bold grey74]{c_comments:,}[/bold grey74]",
+            f"[bold grey50]{c_blanks:,}[/bold grey50]",
+            f"[bold deep_pink4]{c_total:,}[/bold deep_pink4]"
+        )
+        tables.append(table)
+
+    return tables
 
 def build_path_tables(path_metrics, mode):
     tables = []

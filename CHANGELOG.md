@@ -1,3 +1,6 @@
+## v0.4.2
+- **Detailed LOC Report Mode**: Changed `-L`/`--list-loc` in `cli.py` to show only path-level LOC tables plus the final scan summary, and added `-h` as a help alias.
+
 ## v0.4.1
 - **Trusted Publisher Release Workflow**: Added `.github/workflows/release.yml` to build, check, publish `neonloc` to PyPI, and create GitHub Releases from version tags.
 - **Path LOC Tables**: Added `-L` and `--list-loc` support in `cli.py` with `auto`, `files`, `dirs`, and `both` modes backed by optional file and directory metrics from `core.py`.
