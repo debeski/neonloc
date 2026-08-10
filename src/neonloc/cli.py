@@ -1,6 +1,8 @@
 import os
 import sys
+import json
 import click
+from datetime import datetime
 from pathlib import Path
 from rich.console import Console
 from rich.table import Table
@@ -33,7 +35,13 @@ BANNER = """[bold cyan]
     default=None,
     help="Also list LOC by files, dirs, or both. Auto detects flat, modular, or mixed layout."
 )
-def main(directory, list_loc):
+@click.option(
+    "-e",
+    "--export",
+    is_flag=True,
+    help="Write the scan result to the target directory's .neonloc folder."
+)
+def main(directory, list_loc, export):
     """Scan and analyze source code lines with pure edge."""
     os.system('cls' if os.name == 'nt' else 'clear')
     
@@ -50,8 +58,10 @@ def main(directory, list_loc):
     ) as progress:
         task = progress.add_task(f"[bold magenta]Scanning the void...[/bold magenta] ({target_dir})", total=None)
         
-        analyzed = analyze_directory(str(target_dir), include_paths=bool(list_loc))
+        analyzed = analyze_directory(str(target_dir), include_paths=bool(list_loc or export))
         if list_loc:
+            results, path_metrics = analyzed
+        elif export:
             results, path_metrics = analyzed
         else:
             results = analyzed
@@ -89,6 +99,10 @@ def main(directory, list_loc):
         title="[bold yellow]Scan Summary[/bold yellow]",
         title_align="left"
     ))
+    
+    if export:
+        export_path = write_export(target_dir, results, path_metrics, list_loc)
+        console.print(f"[bold cyan]Exported result:[/bold cyan] {export_path}")
 
 def build_category_tables(results):
     categories = {}
@@ -222,6 +236,36 @@ def build_path_table(title, path_column, rows, include_language=False):
     table.add_row(*total_values)
     
     return table
+
+def write_export(target_dir, results, path_metrics, list_loc):
+    export_dir = target_dir / ".neonloc"
+    export_dir.mkdir(exist_ok=True)
+    export_path = export_dir / "result.json"
+    payload = {
+        "generated_at": f"{datetime.utcnow().isoformat(timespec='seconds')}Z",
+        "directory": str(target_dir),
+        "summary": {
+            "files": sum(stats["files"] for stats in results.values()),
+            "languages": len(results),
+            "code": sum(stats["code"] for stats in results.values()),
+            "comments": sum(stats["comments"] for stats in results.values()),
+            "blanks": sum(stats["blanks"] for stats in results.values()),
+            "total": sum(stats["total"] for stats in results.values()),
+        },
+        "languages": results,
+    }
+    if path_metrics:
+        payload["paths"] = {
+            "mode": list_loc.lower() if list_loc else None,
+            "files": path_metrics["files"],
+            "dirs": path_metrics["dirs"],
+        }
+    
+    with open(export_path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2)
+        f.write("\n")
+    
+    return export_path
 
 if __name__ == "__main__":
     main()
