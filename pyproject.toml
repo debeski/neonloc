@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "neonloc"
-version = "0.4.3"
+dynamic = ["version"]
 description = "A blazingly fast, cyber-styled source code counter. Count your lines with pure edge."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -22,4 +22,8 @@ dependencies = [
 neonloc = "neonloc.cli:main"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["."]
+include = ["neonloc*"]
+
+[tool.setuptools.dynamic]
+version = { file = ["VERSION"] }

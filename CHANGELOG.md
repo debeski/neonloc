@@ -1,5 +1,6 @@
 ## v0.5.0
 - **JSON Export Option**: Added `-e`/`--export` in `cli.py` to write `result.json` under the scanned directory's `.neonloc` folder with summary, language metrics, and optional path metrics.
+- **Single Version Source**: Switched `pyproject.toml` to setuptools dynamic versioning from `VERSION`, updated `neonloc.__version__` to read package metadata, and fixed release workflow checks for the top-level `neonloc` package layout.
 
 ## v0.4.2
 - **Detailed LOC Report Mode**: Changed `-L`/`--list-loc` in `cli.py` to show only path-level LOC tables plus the final scan summary, and added `-h` as a help alias.

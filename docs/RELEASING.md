@@ -15,15 +15,18 @@ Releases are tag-driven through `.github/workflows/release.yml`.
 
 ## Release Steps
 
-1. Update `pyproject.toml`, `VERSION`, and `src/neonloc/__init__.py` to the same new version.
-2. Update `CHANGELOG.md` under `## vX.Y.Z`.
+1. Update `VERSION` to the new package version.
+2. Update `CHANGELOG.md` under the matching `## vX.Y.Z` section.
 3. Commit and push the version changes.
 4. Create and push the matching tag:
 
 ```bash
-git tag -a vX.Y.Z -m "vX.Y.Z"
+version="$(cat VERSION)"
+git tag -a "v${version}" -m "v${version}"
 git push origin main
-git push origin vX.Y.Z
+git push origin "v${version}"
 ```
 
-The workflow verifies the tag matches package metadata, builds the sdist and wheel, publishes to PyPI through the `pypi` environment, and creates a GitHub Release with the matching changelog section.
+`VERSION` is the single source of truth for package metadata. `pyproject.toml` reads it through setuptools dynamic versioning, and `neonloc.__version__` reads the installed package metadata generated from it.
+
+The workflow verifies the tag matches `VERSION`, builds the sdist and wheel, verifies the built wheel metadata matches `VERSION`, publishes to PyPI through the `pypi` environment, and creates a GitHub Release with the matching changelog section.

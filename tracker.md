@@ -2,14 +2,14 @@
 
 ## Part 1: Project Related [Max 55 lines]
 ### Current Verified Snapshot: 
-- `neonloc` implemented with Python, Rich, and Click.
+- `neonloc` implemented as a top-level Python package with Rich and Click.
 - CLI code counter groups files by category with an edgy UI.
 - `-L`/`--list-loc` shows only detailed file/dir LOC tables with auto layout detection, followed by summary.
 - `-e`/`--export` writes JSON scan results to `<target>/.neonloc/result.json`.
-- GitHub Actions release workflow publishes tag builds to PyPI via Trusted Publishing.
+- `VERSION` is the single package version source; GitHub Actions publishes tag builds to PyPI via Trusted Publishing.
 ### Current Project Adopted Standards: 
 - Python 3.8+ compatibility.
-- Poetry/Setuptools based `pyproject.toml` structure.
+- Setuptools based `pyproject.toml` with dynamic versioning from `VERSION`.
 - `rich` for edgy terminal output.
 ### Adopted Standards' rules and policies: 
 - Use absolute imports, modern type hinting.
@@ -20,6 +20,7 @@
 - None.
 ### Incomplete Tasks: 
 ### Completed Recently:
+- [x] Fixed release/package version mismatch by making `VERSION` the sole source for setuptools metadata and `neonloc.__version__`.
 - [x] Added optional `-e`/`--export` JSON export under `.neonloc/result.json`.
 - [x] Added tag-driven GitHub Actions release workflow for PyPI and GitHub Releases.
 - [x] Added optional `-L`/`--list-loc` file/dir LOC tables.
@@ -28,9 +29,9 @@
 - [x] Implement rich CLI interface.
 - [x] Build edgy UI components.
 ### One-line info about last verified Tests: 
-- `python3 -m compileall src` passed; isolated `write_export` JSON test passed; full CLI smoke blocked because system Python lacks `click`/`pathspec`.
+- `python3 -m compileall neonloc` passed; `python3 -m build --no-isolation` built `neonloc-0.5.1`; `python3 -m twine check dist/*` passed before artifacts moved to `.xpose/`.
 ### One-line info about last time edited Docs: 
-- `README.md` documents `-e`/`--export` JSON export behavior.
+- `docs/RELEASING.md` documents `VERSION` as the single release version source.
 
 ## Part 2: Global [Max 20 lines]
 ### Global Standard Helpers, Shortcuts, Info, etc.:
