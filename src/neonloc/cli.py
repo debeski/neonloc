@@ -26,7 +26,14 @@ BANNER = """[bold cyan]
 
 @click.command()
 @click.argument('directory', default='.', type=click.Path(exists=True, file_okay=False, dir_okay=True))
-def main(directory):
+@click.option(
+    "-L",
+    "--list-loc",
+    type=click.Choice(["auto", "files", "dirs", "both"], case_sensitive=False),
+    default=None,
+    help="Also list LOC by files, dirs, or both. Auto detects flat, modular, or mixed layout."
+)
+def main(directory, list_loc):
     """Scan and analyze source code lines with pure edge."""
     os.system('cls' if os.name == 'nt' else 'clear')
     
@@ -43,8 +50,12 @@ def main(directory):
     ) as progress:
         task = progress.add_task(f"[bold magenta]Scanning the void...[/bold magenta] ({target_dir})", total=None)
         
-        # Analyze the directory
-        results = analyze_directory(str(target_dir))
+        analyzed = analyze_directory(str(target_dir), include_paths=bool(list_loc))
+        if list_loc:
+            results, path_metrics = analyzed
+        else:
+            results = analyzed
+            path_metrics = None
         
     if not results:
         console.print(Panel(
@@ -107,6 +118,11 @@ def main(directory):
         
         console.print(table)
         console.print()
+    
+    if path_metrics:
+        for table in build_path_tables(path_metrics, list_loc.lower()):
+            console.print(table)
+            console.print()
 
     total_files = sum(stats['files'] for stats in results.values())
     total_code = sum(stats['code'] for stats in results.values())
@@ -123,6 +139,84 @@ def main(directory):
         title="[bold yellow]Scan Summary[/bold yellow]",
         title_align="left"
     ))
+
+def build_path_tables(path_metrics, mode):
+    tables = []
+    selected = resolve_path_mode(path_metrics, mode)
+    
+    if selected in ("dirs", "both"):
+        dir_rows = [row for row in path_metrics["dirs"] if row["path"] != "."]
+        if not dir_rows:
+            dir_rows = path_metrics["dirs"]
+        tables.append(build_path_table("DIRECTORY LOC METRICS", "Directory", dir_rows))
+    
+    if selected in ("files", "both"):
+        tables.append(build_path_table("FILE LOC METRICS", "File", path_metrics["files"], include_language=True))
+    
+    return tables
+
+def resolve_path_mode(path_metrics, mode):
+    if mode != "auto":
+        return mode
+    
+    has_root_files = any(row["path"] == "." for row in path_metrics["dirs"])
+    has_nested_files = any(row["path"] != "." for row in path_metrics["dirs"])
+    
+    if has_root_files and has_nested_files:
+        return "both"
+    if has_nested_files:
+        return "dirs"
+    return "files"
+
+def build_path_table(title, path_column, rows, include_language=False):
+    table = Table(
+        title=f"[bold spring_green2]{title}[/bold spring_green2]",
+        show_header=True,
+        header_style="bold cyan",
+        border_style="magenta",
+        expand=True
+    )
+    table.add_column(path_column, style="bold bright_white")
+    if include_language:
+        table.add_column("Language", style="cyan")
+    table.add_column("Files", justify="right", style="cyan")
+    table.add_column("Lines", justify="right", style="spring_green2")
+    table.add_column("Comments", justify="right", style="grey74")
+    table.add_column("Blanks", justify="right", style="grey50")
+    table.add_column("Total", justify="right", style="bold deep_pink4")
+    
+    totals = {"files": 0, "code": 0, "comments": 0, "blanks": 0, "total": 0}
+    for row in rows:
+        values = [
+            row["path"],
+        ]
+        if include_language:
+            values.append(row["language"])
+        values.extend([
+            f"{row['files']:,}",
+            f"{row['code']:,}",
+            f"{row['comments']:,}",
+            f"{row['blanks']:,}",
+            f"{row['total']:,}"
+        ])
+        table.add_row(*values)
+        for key in totals:
+            totals[key] += row[key]
+    
+    table.add_section()
+    total_values = ["[bold white]TOTAL[/bold white]"]
+    if include_language:
+        total_values.append("[bold cyan]-[/bold cyan]")
+    total_values.extend([
+        f"[bold cyan]{totals['files']:,}[/bold cyan]",
+        f"[bold spring_green2]{totals['code']:,}[/bold spring_green2]",
+        f"[bold grey74]{totals['comments']:,}[/bold grey74]",
+        f"[bold grey50]{totals['blanks']:,}[/bold grey50]",
+        f"[bold deep_pink4]{totals['total']:,}[/bold deep_pink4]"
+    ])
+    table.add_row(*total_values)
+    
+    return table
 
 if __name__ == "__main__":
     main()

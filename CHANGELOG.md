@@ -1,3 +1,7 @@
+## v0.4.1
+- **Trusted Publisher Release Workflow**: Added `.github/workflows/release.yml` to build, check, publish `neonloc` to PyPI, and create GitHub Releases from version tags.
+- **Path LOC Tables**: Added `-L` and `--list-loc` support in `cli.py` with `auto`, `files`, `dirs`, and `both` modes backed by optional file and directory metrics from `core.py`.
+
 ## v0.4.0
 - **Inline CSS and JS Parsing**: Upgraded `core.py` to intelligently parse embedded CSS and JavaScript inside HTML, Vue, Svelte, and PHP files. Inline scripts and styles are now uniquely identified, and their code, comments, and blanks are properly attributed to CSS and JavaScript metrics tables instead of being lumped into Markup.
 

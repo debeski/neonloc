@@ -37,6 +37,14 @@ Or target a specific folder:
 neonloc /path/to/project
 ```
 
+List line metrics by layout-aware paths:
+
+```bash
+neonloc . -L auto
+```
+
+Use `-L files`, `--list-loc dirs`, or `--list-loc both` to force file, directory, or combined LOC tables.
+
 ## Features
 
 - **Categorized Metrics**: Distinct, color-coded tables for `Code`, `Documentation`, `Config`, `Data`, `Markup`, and `Style`.
@@ -44,6 +52,7 @@ neonloc /path/to/project
 - **Lightning Fast**: Scans and parses directories in the blink of an eye.
 - **Language Support**: Python, JavaScript, TypeScript, Go, C/C++, Rust, HTML, CSS, YAML, JSON, Markdown, Bash, Ruby, Java, PHP, Vue, Svelte, TOML, Dockerfile.
 - **Deep Metrics**: Counts true code logic, comments, blanks, and total lines.
+- **Path LOC Tables**: Optional file and directory tables reuse the same metrics style, with `auto` choosing flat, modular, or mixed layout output.
 
 ---
 [**View on PyPI**](https://pypi.org/project/neonloc/) • [**View on GitHub**](https://github.com/debeski/neonloc)

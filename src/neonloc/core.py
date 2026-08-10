@@ -1,7 +1,7 @@
 import os
 import pathspec
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Any, Dict
 
 LANGUAGE_DEFS = {
     "Python": {"type": "Code", "exts": [".py", ".pyw", ".pyx"], "single": ["#"], "multi": [('"""', '"""'), ("'''", "'''")]},
@@ -133,8 +133,24 @@ def count_file(filepath: Path, primary_lang: str) -> Dict[str, Dict[str, int]]:
         
     return stats_by_lang
 
-def analyze_directory(dirpath: str) -> Dict[str, Dict[str, int]]:
+def _empty_stats() -> Dict[str, int]:
+    return {"files": 0, "code": 0, "comments": 0, "blanks": 0, "total": 0}
+
+def _add_stats(target: Dict[str, int], source: Dict[str, int]) -> None:
+    for key in ("code", "comments", "blanks", "total"):
+        target[key] += source[key]
+
+def _file_totals(stats_by_lang: Dict[str, Dict[str, int]]) -> Dict[str, int]:
+    totals = _empty_stats()
+    totals["files"] = 1
+    for stats in stats_by_lang.values():
+        _add_stats(totals, stats)
+    return totals
+
+def analyze_directory(dirpath: str, include_paths: bool = False) -> Any:
     results = {}
+    file_stats = []
+    dir_stats = {}
     base_path = Path(dirpath).resolve()
     
     spec = None
@@ -171,6 +187,20 @@ def analyze_directory(dirpath: str) -> Dict[str, Dict[str, int]]:
             stats_by_lang = count_file(filepath, primary_lang)
             if sum(s["total"] for s in stats_by_lang.values()) == 0:
                 continue
+            
+            if include_paths:
+                rel_path = filepath.relative_to(base_path)
+                file_total = _file_totals(stats_by_lang)
+                file_total["language"] = primary_lang
+                file_total["path"] = str(rel_path)
+                file_stats.append(file_total)
+                
+                parent = rel_path.parent
+                dir_key = "." if str(parent) == "." else str(parent)
+                if dir_key not in dir_stats:
+                    dir_stats[dir_key] = _empty_stats()
+                dir_stats[dir_key]["files"] += 1
+                _add_stats(dir_stats[dir_key], file_total)
                 
             if primary_lang not in results:
                 results[primary_lang] = {"type": LANGUAGE_DEFS[primary_lang].get("type", "Code"), "files": 0, "code": 0, "comments": 0, "blanks": 0, "total": 0}
@@ -188,4 +218,14 @@ def analyze_directory(dirpath: str) -> Dict[str, Dict[str, int]]:
                 results[lang]["blanks"] += stats["blanks"]
                 results[lang]["total"] += stats["total"]
             
+    if include_paths:
+        return results, {
+            "files": sorted(file_stats, key=lambda item: item["total"], reverse=True),
+            "dirs": sorted(
+                [{"path": path, **stats} for path, stats in dir_stats.items()],
+                key=lambda item: item["total"],
+                reverse=True
+            )
+        }
+    
     return results
