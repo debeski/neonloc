@@ -42,6 +42,19 @@ IGNORE_DIRS = {
     "target", "vendor"
 }
 
+GENERATED_FILE_PATTERN = re.compile(
+    r'\.min\.(js|css)$'
+    r'|\.bundle\.(js|css)$'
+    r'|[-.]lock\.(json|ya?ml)$'
+    r'|\.(map|d\.ts)$'
+    r'|^package-lock\.json$'
+    r'|^yarn\.lock$'
+    r'|^pnpm-lock\.ya?ml$'
+    r'|^Cargo\.lock$'
+    r'|^composer\.lock$',
+    re.IGNORECASE,
+)
+
 # (regex matching a function/method declaration line, capture group 1 = name, block style)
 FUNCTION_PATTERNS = {
     "Python": (re.compile(r'^\s*(?:async\s+)?def\s+(\w+)\s*\('), "indent"),
@@ -285,12 +298,15 @@ def analyze_directory(
         
         for file in files:
             filepath = Path(root) / file
-            
+
+            if not include_generated and GENERATED_FILE_PATTERN.search(file):
+                continue
+
             if spec:
                 rel_path = filepath.relative_to(base_path)
                 if spec.match_file(str(rel_path)):
                     continue
-            
+
             primary_lang = get_language(file)
             if primary_lang == "Unknown":
                 continue

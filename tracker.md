@@ -8,6 +8,7 @@
 - `neonloc/html_report.py`: `--html <path>` writes a self-contained dark-themed HTML report (cards, tables, health, trend SVG). `-e`/`--export` writes timestamped `result_<ts>.json`/`.txt` under `.neonloc/`.
 - `-V`/`--version`. `--no-banner`/`--no-color`/`-q`/`--quiet` for scripting; config `[output]` also controls banner/color defaults.
 - `core.py` `FUNCTION_PATTERNS`/`CONSTANT_PATTERNS` (11 languages) + `collect_features` in `count_file`/`analyze_directory` find longest function (LOC span) / longest constant (value length); shown in Project Summary, HTML report, and export JSON `summary`.
+- v0.6.3: `core.GENERATED_FILE_PATTERN` skips `*.min.js/css`, `*.bundle.*`, `.map`/`.d.ts`, lockfiles in `analyze_directory` (gated by `include_generated`). `-L files` drops the always-`1` `Files` column, adds a `FILES BY LANGUAGE` rollup (`build_language_rollup_table`), and path columns use `overflow="fold"` instead of ellipsis truncation.
 ### Current Project Adopted Standards: 
 - Python 3.8+ compatibility.
 - Setuptools based `pyproject.toml` with dynamic versioning from `VERSION`.
@@ -21,6 +22,7 @@
 - None.
 ### Incomplete Tasks: 
 ### Completed Recently:
+- [x] Fixed uninformative per-file `Files` column, missing vendor/minified exclusion (bootstrap.min.js etc. ranking as top files), no per-language rollup in `-L files`, and `…`-truncated filenames (per user report).
 - [x] Fixed `Table.grid` (health/git/summary panels in `cli.py`) missing `expand=True`, causing right-aligned values to stay content-width instead of hugging the panel edge on wide terminals.
 - [x] Added Longest function/constant to Project Summary (heuristic regex+brace/indent scan, `core.py`/`cli.py`/`html_report.py`).
 - [x] Reworked `-L both` into a nested folder/file tree table instead of two flat tables.
@@ -33,7 +35,7 @@
 - [x] Implement rich CLI interface.
 - [x] Build edgy UI components.
 ### One-line info about last verified Tests: 
-- `py_compile` on all `neonloc/*.py` passed; manual CLI smoke tests (config file, `--html`, `-D`/`-X`/`--git`/`--since`/`-q` combos) verified against scratch fixtures and this repo.
+- `py_compile` on all `neonloc/*.py` passed; manual smoke tests of `-L files/dirs/both`, `-D`, `-X` on this repo + a scratch fixture with a synthetic `bootstrap.min.js` (confirmed excluded, `include_generated=true` re-includes it) at 80/120/160 col widths.
 ### One-line info about last time edited Docs: 
 - `README.md` Usage/Features refreshed for all v0.6.0 flags (depth/top/sort, `-D`, `-X`, `--git`/`--since`, `--html`, `.neonloc.toml`).
 

@@ -657,11 +657,12 @@ def build_path_tables(path_metrics, mode, depth=None, top_n=None, top_dirs=None,
 
     if selected == "files":
         file_rows = sort_file_rows(path_metrics["files"], sort_by)
+        tables.append(build_language_rollup_table(file_rows))
         title = "FILE LOC METRICS"
         if top_n:
             file_rows = file_rows[:top_n]
             title = f"TOP {top_n} LARGEST FILES"
-        tables.append(build_path_table(title, "File", file_rows, include_language=True))
+        tables.append(build_path_table(title, "File", file_rows, include_language=True, include_files_count=False))
 
     return tables
 
@@ -678,7 +679,7 @@ def resolve_path_mode(path_metrics, mode):
         return "dirs"
     return "files"
 
-def build_path_table(title, path_column, rows, include_language=False):
+def build_path_table(title, path_column, rows, include_language=False, include_files_count=True):
     table = Table(
         title=f"[bold spring_green2]{title}[/bold spring_green2]",
         show_header=True,
@@ -686,10 +687,11 @@ def build_path_table(title, path_column, rows, include_language=False):
         border_style="magenta",
         expand=True
     )
-    table.add_column(path_column, style="bold bright_white")
+    table.add_column(path_column, style="bold bright_white", overflow="fold", ratio=3)
     if include_language:
         table.add_column("Language", style="cyan")
-    table.add_column("Files", justify="right", style="cyan")
+    if include_files_count:
+        table.add_column("Files", justify="right", style="cyan")
     table.add_column("Lines", justify="right", style="spring_green2")
     table.add_column("Comments", justify="right", style="grey74")
     table.add_column("Blanks", justify="right", style="grey50")
@@ -703,8 +705,9 @@ def build_path_table(title, path_column, rows, include_language=False):
         ]
         if include_language:
             values.append(row["language"])
+        if include_files_count:
+            values.append(f"{row['files']:,}")
         values.extend([
-            f"{row['files']:,}",
             f"{row['code']:,}",
             f"{row['comments']:,}",
             f"{row['blanks']:,}",
@@ -719,8 +722,9 @@ def build_path_table(title, path_column, rows, include_language=False):
     total_values = ["[bold white]TOTAL[/bold white]"]
     if include_language:
         total_values.append("[bold cyan]-[/bold cyan]")
+    if include_files_count:
+        total_values.append(f"[bold cyan]{totals['files']:,}[/bold cyan]")
     total_values.extend([
-        f"[bold cyan]{totals['files']:,}[/bold cyan]",
         f"[bold spring_green2]{totals['code']:,}[/bold spring_green2]",
         f"[bold grey74]{totals['comments']:,}[/bold grey74]",
         f"[bold grey50]{totals['blanks']:,}[/bold grey50]",
@@ -730,6 +734,18 @@ def build_path_table(title, path_column, rows, include_language=False):
     table.add_row(*total_values)
 
     return table
+
+def build_language_rollup_table(file_rows):
+    by_lang = {}
+    for row in file_rows:
+        lang = row["language"]
+        agg = by_lang.setdefault(lang, {"files": 0, "code": 0, "comments": 0, "blanks": 0, "total": 0})
+        agg["files"] += 1
+        for key in ("code", "comments", "blanks", "total"):
+            agg[key] += row[key]
+
+    rows = [dict(agg, path=lang) for lang, agg in sorted(by_lang.items(), key=lambda item: item[1]["total"], reverse=True)]
+    return build_path_table("FILES BY LANGUAGE", "Language", rows, include_language=False, include_files_count=True)
 
 def build_tree_table(path_metrics):
     dirs = path_metrics["dirs"]

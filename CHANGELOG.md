@@ -1,3 +1,9 @@
+## v0.6.3
+- **Generated/Vendor File Exclusion**: Added `GENERATED_FILE_PATTERN` in `core.py` (matches `*.min.js`/`*.min.css`, `*.bundle.js`/`*.bundle.css`, `*.map`, `*.d.ts`, and lockfiles like `package-lock.json`/`yarn.lock`/`Cargo.lock`) checked in `analyze_directory`'s walk, gated by the existing `include_generated` config/flag — fixes vendored/minified files (e.g. bundled `bootstrap.min.js`) skewing largest-file rankings when they weren't nested under an `IGNORE_DIRS` name.
+- **Per-File Table Cleanup**: `build_path_table` in `cli.py` gained `include_files_count`, now `False` for the files-mode listing — the `Files` column always read `1` per row there and carried no information.
+- **Language Rollup for File Listings**: Added `build_language_rollup_table` in `cli.py`, printed as a `FILES BY LANGUAGE` table ahead of the per-file listing in `-L files`/`auto` mode, aggregating files/code/comments/blanks/total per language.
+- **Full Filenames in Narrow Terminals**: The `File`/`Directory` path column in `build_path_table` now uses `overflow="fold"` with a `ratio=3` width hint instead of Rich's default ellipsis truncation, so long paths wrap across lines instead of being cut to an unidentifiable `…` fragment.
+
 ## v0.6.2
 - **Wide-Terminal Panel Alignment**: `build_health_panel`/`build_git_panel`/`build_summary_panel` in `cli.py` now build their `Table.grid` with `expand=True`, so the right-aligned value column stretches to the panel's full width instead of staying content-sized while only the panel border grew on wide terminals.
 
