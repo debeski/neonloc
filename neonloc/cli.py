@@ -306,7 +306,7 @@ def build_errors_table(errors):
     return table
 
 def build_health_panel(health):
-    table = Table.grid(padding=(0, 2))
+    table = Table.grid(padding=(0, 2), expand=True)
     table.add_column(justify="left", style="bold bright_white")
     table.add_column(justify="right")
 
@@ -334,7 +334,7 @@ def build_health_panel(health):
     )
 
 def build_git_panel(git_summary):
-    table = Table.grid(padding=(0, 2))
+    table = Table.grid(padding=(0, 2), expand=True)
     table.add_column(justify="left", style="bold bright_white")
     table.add_column(justify="right")
 
@@ -493,7 +493,7 @@ def build_summary_panel(results, path_metrics, dup_result=None):
     comment_ratio = totals["comments"] / grand_total * 100
     blank_ratio = totals["blanks"] / grand_total * 100
 
-    table = Table.grid(padding=(0, 2))
+    table = Table.grid(padding=(0, 2), expand=True)
     table.add_column(justify="left", style="bold bright_white")
     table.add_column(justify="right")
 

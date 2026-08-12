@@ -1,3 +1,6 @@
+## v0.6.2
+- **Wide-Terminal Panel Alignment**: `build_health_panel`/`build_git_panel`/`build_summary_panel` in `cli.py` now build their `Table.grid` with `expand=True`, so the right-aligned value column stretches to the panel's full width instead of staying content-sized while only the panel border grew on wide terminals.
+
 ## v0.6.1
 - **Longest Function/Constant in Summary**: `core.py` gained heuristic `FUNCTION_PATTERNS`/`CONSTANT_PATTERNS` (Python, JS/TS, Go, Java, C#, C/C++, Rust, Swift, Kotlin, PHP) and an opt-in `collect_features` pass in `count_file`/`analyze_directory` (indent-based tracking for Python, brace-depth tracking for the rest) that finds the longest function by LOC span and the longest constant declaration by value length. Surfaced as `Longest function`/`Longest constant` rows in the `Project Summary` panel (`cli.py`), the HTML report's `Project Health` section (`html_report.py`), and `summary.longest_function`/`summary.longest_constant` in `-e`/`--export` JSON.
 

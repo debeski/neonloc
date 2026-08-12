@@ -21,6 +21,7 @@
 - None.
 ### Incomplete Tasks: 
 ### Completed Recently:
+- [x] Fixed `Table.grid` (health/git/summary panels in `cli.py`) missing `expand=True`, causing right-aligned values to stay content-width instead of hugging the panel edge on wide terminals.
 - [x] Added Longest function/constant to Project Summary (heuristic regex+brace/indent scan, `core.py`/`cli.py`/`html_report.py`).
 - [x] Reworked `-L both` into a nested folder/file tree table instead of two flat tables.
 - [x] Fixed release/package version mismatch by making `VERSION` the sole source for setuptools metadata and `neonloc.__version__`.
