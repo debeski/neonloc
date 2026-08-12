@@ -7,6 +7,7 @@
 - New `neonloc/config.py`: loads `.neonloc.toml` (`[scan]`/`[output]`/`[thresholds]`, `tomllib`/`tomli` fallback) from target dir; CLI flags override. `neonloc/git_info.py`: `--git`, `--since <Nd|w|m|y>` LOC trend.
 - `neonloc/html_report.py`: `--html <path>` writes a self-contained dark-themed HTML report (cards, tables, health, trend SVG). `-e`/`--export` writes timestamped `result_<ts>.json`/`.txt` under `.neonloc/`.
 - `-V`/`--version`. `--no-banner`/`--no-color`/`-q`/`--quiet` for scripting; config `[output]` also controls banner/color defaults.
+- `core.py` `FUNCTION_PATTERNS`/`CONSTANT_PATTERNS` (11 languages) + `collect_features` in `count_file`/`analyze_directory` find longest function (LOC span) / longest constant (value length); shown in Project Summary, HTML report, and export JSON `summary`.
 ### Current Project Adopted Standards: 
 - Python 3.8+ compatibility.
 - Setuptools based `pyproject.toml` with dynamic versioning from `VERSION`.
@@ -20,6 +21,7 @@
 - None.
 ### Incomplete Tasks: 
 ### Completed Recently:
+- [x] Added Longest function/constant to Project Summary (heuristic regex+brace/indent scan, `core.py`/`cli.py`/`html_report.py`).
 - [x] Reworked `-L both` into a nested folder/file tree table instead of two flat tables.
 - [x] Fixed release/package version mismatch by making `VERSION` the sole source for setuptools metadata and `neonloc.__version__`.
 - [x] Added optional `-e`/`--export` JSON export under `.neonloc/result.json`.

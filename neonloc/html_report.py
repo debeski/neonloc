@@ -160,6 +160,17 @@ def render_html_report(target_dir, generated_at, results, path_metrics, health,
         f"{_esc(largest_file['path'])} ({largest_file['total']:,} LOC)" if largest_file else "-"
     )
 
+    longest_function = path_metrics.get("longest_function") if path_metrics else None
+    longest_function_text = (
+        f"{_esc(longest_function['name'])} — {_esc(longest_function['path'])} ({longest_function['length']:,} LOC)"
+        if longest_function else "-"
+    )
+    longest_constant = path_metrics.get("longest_constant") if path_metrics else None
+    longest_constant_text = (
+        f"{_esc(longest_constant['name'])} — {_esc(longest_constant['path'])} ({longest_constant['length']:,} chars)"
+        if longest_constant else "-"
+    )
+
     git_section = ""
     if git_summary:
         git_section = f"""
@@ -242,6 +253,8 @@ def render_html_report(target_dir, generated_at, results, path_metrics, health,
     <dt>Largest File</dt><dd>{largest_file_text}</dd>
     <dt>Empty Files</dt><dd>{health['empty_files']:,}</dd>
     <dt>Huge Files (&gt;{health['huge_file_loc']} LOC)</dt><dd>{health['huge_files']:,}</dd>
+    <dt>Longest Function</dt><dd>{longest_function_text}</dd>
+    <dt>Longest Constant</dt><dd>{longest_constant_text}</dd>
   </dl>
   <ul class="warnings">{warnings_html}</ul>
 </section>

@@ -1,4 +1,5 @@
 import os
+import re
 import pathspec
 from pathlib import Path
 from typing import Any, Dict
@@ -41,6 +42,84 @@ IGNORE_DIRS = {
     "target", "vendor"
 }
 
+# (regex matching a function/method declaration line, capture group 1 = name, block style)
+FUNCTION_PATTERNS = {
+    "Python": (re.compile(r'^\s*(?:async\s+)?def\s+(\w+)\s*\('), "indent"),
+    "JavaScript": (re.compile(r'^\s*(?:export\s+(?:default\s+)?)?(?:async\s+)?function\s*\*?\s*(\w+)\s*\('), "brace"),
+    "TypeScript": (re.compile(r'^\s*(?:export\s+(?:default\s+)?)?(?:async\s+)?function\s*\*?\s*(\w+)\s*\('), "brace"),
+    "Go": (re.compile(r'^\s*func\s+(?:\([^)]*\)\s*)?(\w+)\s*\('), "brace"),
+    "Java": (re.compile(r'^\s*(?:public|private|protected|static|final|synchronized|abstract|\s)+[\w<>\[\],\.]+\s+(\w+)\s*\([^;{]*\)\s*(?:throws\s+[\w,\s]+)?\{'), "brace"),
+    "C/C++": (re.compile(r'^\s*(?!if|for|while|switch|catch|return)[\w:\<\>\*&,\s]+\s+(\w+)\s*\([^;{]*\)\s*\{'), "brace"),
+    "C#": (re.compile(r'^\s*(?:public|private|protected|static|internal|async|override|virtual|\s)+[\w<>\[\],\.]+\s+(\w+)\s*\([^;{]*\)\s*\{'), "brace"),
+    "Rust": (re.compile(r'^\s*(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?(?:unsafe\s+)?fn\s+(\w+)\s*[<(]'), "brace"),
+    "Swift": (re.compile(r'^\s*(?:public|private|internal|fileprivate|open|static|\s)*func\s+(\w+)\s*[<(]'), "brace"),
+    "Kotlin": (re.compile(r'^\s*(?:public|private|internal|protected|override|suspend|\s)*fun\s+(\w+)\s*[<(]'), "brace"),
+    "PHP": (re.compile(r'^\s*(?:public|private|protected|static|abstract|final|\s)*function\s+(\w+)\s*\('), "brace"),
+}
+
+# (regex matching a constant declaration line, capture group 1 = name, group 2 = value)
+CONSTANT_PATTERNS = {
+    "Python": re.compile(r'^([A-Z_][A-Z0-9_]*)\s*(?::\s*[\w\[\]\.\'\",\s]+)?=\s*(.+)$'),
+    "JavaScript": re.compile(r'^(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=\s*(.+?);?$'),
+    "TypeScript": re.compile(r'^(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*(?::\s*[\w<>\[\]\.\| ]+)?=\s*(.+?);?$'),
+    "Go": re.compile(r'^const\s+(\w+)\s+(?:\w[\w\.\[\]]*\s+)?=\s*(.+)$'),
+    "Java": re.compile(r'^(?:public|private|protected|static|final|\s)*final\s+[\w<>\[\]]+\s+(\w+)\s*=\s*(.+);$'),
+    "C#": re.compile(r'^(?:public|private|protected|static|\s)*const\s+[\w<>\[\]]+\s+(\w+)\s*=\s*(.+);$'),
+    "Rust": re.compile(r'^(?:pub(?:\([^)]*\))?\s+)?(?:static\s+)?const\s+(\w+)\s*:\s*[\w<>\[\]\'&\s]+\s*=\s*(.+);$'),
+    "C/C++": re.compile(r'^#define\s+(\w+)\s+(.+)$'),
+    "PHP": re.compile(r'^const\s+(\w+)\s*=\s*(.+);$'),
+    "Swift": re.compile(r'^(?:public|private|internal|fileprivate|open|\s)*let\s+([A-Z_][A-Za-z0-9_]*)\s*(?::\s*[\w\[\]<>\.]+)?=\s*(.+)$'),
+    "Kotlin": re.compile(r'^(?:public|private|internal|\s)*const\s+val\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?::\s*[\w<>\[\]\.]+)?=\s*(.+)$'),
+}
+
+def _new_feature_states() -> Dict[str, dict]:
+    return {}
+
+def _scan_line_features(lang: str, line_no: int, raw_line: str, feature_states: Dict[str, dict], features: Dict[str, list]) -> None:
+    stripped = raw_line.strip()
+    if not stripped:
+        return
+
+    func_def = FUNCTION_PATTERNS.get(lang)
+    if func_def:
+        pattern, style = func_def
+        state = feature_states.setdefault(lang, {"stack": [], "brace_depth": 0})
+        match = pattern.match(raw_line)
+
+        if style == "indent":
+            indent = len(raw_line) - len(raw_line.lstrip(" \t"))
+            stack = state["stack"]
+            while stack and stack[-1]["indent"] >= indent:
+                finished = stack.pop()
+                features["functions"].append((finished["name"], finished["start"], line_no - 1, line_no - 1 - finished["start"] + 1))
+            if match:
+                stack.append({"name": match.group(1), "start": line_no, "indent": indent})
+        else:
+            open_depth = state["brace_depth"]
+            if match:
+                state["stack"].append({"name": match.group(1), "start": line_no, "open_depth": open_depth})
+            state["brace_depth"] += raw_line.count("{") - raw_line.count("}")
+            stack = state["stack"]
+            while stack and state["brace_depth"] <= stack[-1]["open_depth"]:
+                finished = stack.pop()
+                features["functions"].append((finished["name"], finished["start"], line_no, line_no - finished["start"] + 1))
+
+    const_pattern = CONSTANT_PATTERNS.get(lang)
+    if const_pattern:
+        match = const_pattern.match(stripped)
+        if match:
+            groups = [g for g in match.groups() if g]
+            if len(groups) >= 2:
+                name, value = groups[0], groups[-1]
+                features["constants"].append((name, line_no, len(value.strip())))
+
+def _flush_feature_states(feature_states: Dict[str, dict], last_line: int, features: Dict[str, list]) -> None:
+    for state in feature_states.values():
+        for finished in state["stack"]:
+            end_line = last_line
+            features["functions"].append((finished["name"], finished["start"], end_line, end_line - finished["start"] + 1))
+        state["stack"].clear()
+
 def get_language(filename: str) -> str:
     # Check exact match first (e.g. Dockerfile)
     for lang, df in LANGUAGE_DEFS.items():
@@ -55,9 +134,12 @@ def get_language(filename: str) -> str:
     
     return "Unknown"
 
-def count_file(filepath: Path, primary_lang: str, collect_lines: bool = False):
+def count_file(filepath: Path, primary_lang: str, collect_lines: bool = False, collect_features: bool = False):
     stats_by_lang = {primary_lang: {"code": 0, "comments": 0, "blanks": 0, "total": 0}}
     code_lines = [] if collect_lines else None
+    features = {"functions": [], "constants": []} if collect_features else None
+    feature_states = _new_feature_states() if collect_features else None
+    last_code_line = 0
     error = None
     try:
         with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
@@ -132,10 +214,16 @@ def count_file(filepath: Path, primary_lang: str, collect_lines: bool = False):
                     stats_by_lang[line_lang]["code"] += 1
                     if collect_lines:
                         code_lines.append((line_no, sline))
+                    if collect_features:
+                        last_code_line = line_no
+                        _scan_line_features(line_lang, line_no, line.rstrip("\n\r"), feature_states, features)
     except Exception as exc:
         error = str(exc) or exc.__class__.__name__
 
-    return stats_by_lang, code_lines, error
+    if collect_features:
+        _flush_feature_states(feature_states, last_code_line, features)
+
+    return stats_by_lang, code_lines, features, error
 
 def _empty_stats() -> Dict[str, int]:
     return {"files": 0, "code": 0, "comments": 0, "blanks": 0, "total": 0}
@@ -158,12 +246,15 @@ def analyze_directory(
     respect_gitignore: bool = True,
     include_hidden: bool = False,
     include_generated: bool = False,
+    include_code_features: bool = False,
 ) -> Any:
     results = {}
     file_stats = []
     dir_stats = {}
     errors = []
     code_lines_by_file = {} if include_duplicates else None
+    longest_function = None
+    longest_constant = None
     base_path = Path(dirpath).resolve()
 
     spec = None
@@ -205,7 +296,9 @@ def analyze_directory(
                 continue
 
             rel_path = filepath.relative_to(base_path)
-            stats_by_lang, code_lines, error = count_file(filepath, primary_lang, collect_lines=include_duplicates)
+            stats_by_lang, code_lines, features, error = count_file(
+                filepath, primary_lang, collect_lines=include_duplicates, collect_features=include_code_features
+            )
             if error:
                 errors.append({"path": str(rel_path), "error": error})
                 continue
@@ -213,6 +306,16 @@ def analyze_directory(
 
             if include_duplicates and not is_empty and code_lines:
                 code_lines_by_file[str(rel_path)] = code_lines
+
+            if include_code_features and features:
+                for name, start, end, length in features["functions"]:
+                    if longest_function is None or length > longest_function["length"]:
+                        longest_function = {"name": name, "path": str(rel_path), "language": primary_lang,
+                                             "start_line": start, "end_line": end, "length": length}
+                for name, line_no, length in features["constants"]:
+                    if longest_constant is None or length > longest_constant["length"]:
+                        longest_constant = {"name": name, "path": str(rel_path), "language": primary_lang,
+                                             "line": line_no, "length": length}
 
             if include_paths:
                 file_total = _file_totals(stats_by_lang)
@@ -258,6 +361,9 @@ def analyze_directory(
         }
         if include_duplicates:
             path_metrics["code_lines"] = code_lines_by_file
+        if include_code_features:
+            path_metrics["longest_function"] = longest_function
+            path_metrics["longest_constant"] = longest_constant
         return results, path_metrics
 
     return results

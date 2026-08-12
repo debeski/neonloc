@@ -170,6 +170,7 @@ def main(directory, list_loc, depth, top_n, top_languages, top_dirs, sort_by, di
         respect_gitignore=config["scan"]["respect_gitignore"],
         include_hidden=config["scan"]["include_hidden"],
         include_generated=config["scan"]["include_generated"],
+        include_code_features=True,
     )
 
     if quiet:
@@ -513,6 +514,22 @@ def build_summary_panel(results, path_metrics, dup_result=None):
         table.add_row("Largest directory", f"[bold cyan]{dir_label}[/bold cyan] ({dir_pct:.1f}%)")
     table.add_row("Comment ratio", f"[bold yellow]{comment_ratio:.1f}%[/bold yellow]")
     table.add_row("Blank ratio", f"[bold yellow]{blank_ratio:.1f}%[/bold yellow]")
+    longest_function = path_metrics.get("longest_function") if path_metrics else None
+    if longest_function:
+        table.add_row(
+            "Longest function",
+            f"[bold cyan]{longest_function['name']}[/bold cyan] "
+            f"([grey74]{longest_function['path']}[/grey74]) "
+            f"[bold spring_green2]{longest_function['length']:,}[/bold spring_green2] LOC"
+        )
+    longest_constant = path_metrics.get("longest_constant") if path_metrics else None
+    if longest_constant:
+        table.add_row(
+            "Longest constant",
+            f"[bold cyan]{longest_constant['name']}[/bold cyan] "
+            f"([grey74]{longest_constant['path']}[/grey74]) "
+            f"[bold spring_green2]{longest_constant['length']:,}[/bold spring_green2] chars"
+        )
     if dup_result is not None:
         table.add_row("Duplication ratio", f"[bold yellow]{dup_result['ratio']:.1f}%[/bold yellow]")
 
@@ -829,6 +846,10 @@ def write_export(target_dir, results, path_metrics, list_loc, report_items, dup_
         }
     if path_metrics and path_metrics.get("errors"):
         payload["errors"] = path_metrics["errors"]
+    if path_metrics and path_metrics.get("longest_function"):
+        payload["summary"]["longest_function"] = path_metrics["longest_function"]
+    if path_metrics and path_metrics.get("longest_constant"):
+        payload["summary"]["longest_constant"] = path_metrics["longest_constant"]
     if dup_result is not None:
         payload["duplication"] = dup_result
     if git_summary is not None:
