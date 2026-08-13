@@ -1,3 +1,6 @@
+## v0.6.4
+- **Fixed False Comment-Block Detection**: `count_file` in `core.py` tracks multi-line string literals (e.g. `TEMPLATE = """..."""`) separately from real block comments/docstrings now. Previously, a symmetric delimiter's (Python `"""`/`'''`) lone closing line — e.g. the bare `"""` ending a non-docstring template constant — was misread as *opening* a new comment block, silently reclassifying every following line as a comment until another stray triple-quote appeared, wildly inflating the Comments column and undercounting Code (reproduced on `neonloc/cli.py`'s own `BANNER` constant).
+
 ## v0.6.3
 - **Generated/Vendor File Exclusion**: Added `GENERATED_FILE_PATTERN` in `core.py` (matches `*.min.js`/`*.min.css`, `*.bundle.js`/`*.bundle.css`, `*.map`, `*.d.ts`, and lockfiles like `package-lock.json`/`yarn.lock`/`Cargo.lock`) checked in `analyze_directory`'s walk, gated by the existing `include_generated` config/flag — fixes vendored/minified files (e.g. bundled `bootstrap.min.js`) skewing largest-file rankings when they weren't nested under an `IGNORE_DIRS` name.
 - **Per-File Table Cleanup**: `build_path_table` in `cli.py` gained `include_files_count`, now `False` for the files-mode listing — the `Files` column always read `1` per row there and carried no information.

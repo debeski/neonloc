@@ -158,6 +158,8 @@ def count_file(filepath: Path, primary_lang: str, collect_lines: bool = False, c
         with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
             in_block_comment = False
             current_block_end = None
+            in_string_literal = False
+            string_literal_end = None
             current_lang = primary_lang
 
             for line_no, line in enumerate(f, start=1):
@@ -200,7 +202,14 @@ def count_file(filepath: Path, primary_lang: str, collect_lines: bool = False, c
                         in_block_comment = False
                         current_block_end = None
                     continue
-                
+
+                if in_string_literal:
+                    stats_by_lang[line_lang]["code"] += 1
+                    if string_literal_end in sline:
+                        in_string_literal = False
+                        string_literal_end = None
+                    continue
+
                 block_started = False
                 for b_start, b_end in line_lang_def.get("multi", []):
                     if sline.startswith(b_start):
@@ -212,17 +221,17 @@ def count_file(filepath: Path, primary_lang: str, collect_lines: bool = False, c
                             in_block_comment = False
                             current_block_end = None
                         break
-                
+
                 if block_started:
                     continue
-                
+
                 is_single = False
                 for s_cmt in line_lang_def.get("single", []):
                     if sline.startswith(s_cmt):
                         stats_by_lang[line_lang]["comments"] += 1
                         is_single = True
                         break
-                
+
                 if not is_single:
                     stats_by_lang[line_lang]["code"] += 1
                     if collect_lines:
@@ -230,6 +239,20 @@ def count_file(filepath: Path, primary_lang: str, collect_lines: bool = False, c
                     if collect_features:
                         last_code_line = line_no
                         _scan_line_features(line_lang, line_no, line.rstrip("\n\r"), feature_states, features)
+
+                    # A multi-line string literal (e.g. `x = """`) that isn't a
+                    # docstring/comment still needs tracking, otherwise its lone
+                    # closing line (which also startswith the same marker for
+                    # symmetric delimiters like Python's `"""`/`'''`) gets
+                    # misread as opening a new comment block.
+                    for b_start, b_end in line_lang_def.get("multi", []):
+                        start_idx = sline.find(b_start)
+                        if start_idx == -1:
+                            continue
+                        if b_end not in sline[start_idx + len(b_start):]:
+                            in_string_literal = True
+                            string_literal_end = b_end
+                        break
     except Exception as exc:
         error = str(exc) or exc.__class__.__name__
 

@@ -9,6 +9,7 @@
 - `-V`/`--version`. `--no-banner`/`--no-color`/`-q`/`--quiet` for scripting; config `[output]` also controls banner/color defaults.
 - `core.py` `FUNCTION_PATTERNS`/`CONSTANT_PATTERNS` (11 languages) + `collect_features` in `count_file`/`analyze_directory` find longest function (LOC span) / longest constant (value length); shown in Project Summary, HTML report, and export JSON `summary`.
 - v0.6.3: `core.GENERATED_FILE_PATTERN` skips `*.min.js/css`, `*.bundle.*`, `.map`/`.d.ts`, lockfiles in `analyze_directory` (gated by `include_generated`). `-L files` drops the always-`1` `Files` column, adds a `FILES BY LANGUAGE` rollup (`build_language_rollup_table`), and path columns use `overflow="fold"` instead of ellipsis truncation.
+- v0.6.4: `count_file` in `core.py` now tracks `in_string_literal` separately from `in_block_comment`, so a non-docstring multi-line string's lone closing line (symmetric delimiter, e.g. Python `"""`) no longer gets misread as opening a new comment block and swallowing the rest of the file as "comments".
 ### Current Project Adopted Standards: 
 - Python 3.8+ compatibility.
 - Setuptools based `pyproject.toml` with dynamic versioning from `VERSION`.
@@ -22,6 +23,7 @@
 - None.
 ### Incomplete Tasks: 
 ### Completed Recently:
+- [x] Fixed false comment-block detection: a non-docstring multi-line string's bare closing line (Python `"""`/`'''`) was misread as a new comment open, swallowing the rest of the file as comments (reproduced on `cli.py`'s own `BANNER` constant, dropped this repo's Comments count from a bogus 197 to a correct 12).
 - [x] Fixed uninformative per-file `Files` column, missing vendor/minified exclusion (bootstrap.min.js etc. ranking as top files), no per-language rollup in `-L files`, and `…`-truncated filenames (per user report).
 - [x] Fixed `Table.grid` (health/git/summary panels in `cli.py`) missing `expand=True`, causing right-aligned values to stay content-width instead of hugging the panel edge on wide terminals.
 - [x] Added Longest function/constant to Project Summary (heuristic regex+brace/indent scan, `core.py`/`cli.py`/`html_report.py`).
@@ -35,7 +37,7 @@
 - [x] Implement rich CLI interface.
 - [x] Build edgy UI components.
 ### One-line info about last verified Tests: 
-- `py_compile` on all `neonloc/*.py` passed; manual smoke tests of `-L files/dirs/both`, `-D`, `-X` on this repo + a scratch fixture with a synthetic `bootstrap.min.js` (confirmed excluded, `include_generated=true` re-includes it) at 80/120/160 col widths.
+- `py_compile` passed; manual Python fixtures (module/function docstrings, mid-line-assigned triple-quoted templates with bare closing lines) verified correct code/comment/blank split against hand counts; re-ran `neonloc .` on this repo confirming plausible Comments total post-fix.
 ### One-line info about last time edited Docs: 
 - `README.md` Usage/Features refreshed for all v0.6.0 flags (depth/top/sort, `-D`, `-X`, `--git`/`--since`, `--html`, `.neonloc.toml`).
 
